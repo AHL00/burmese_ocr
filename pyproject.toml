@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "burmese_ocr"
+version = "0.1.0"
+description = ""
+authors = [
+]
+dependencies = [
+    # List your project dependencies here
+    "numpy",
+    "opencv-python",
+    "matplotlib",
+]
+
+[tool.pylint]
+# Add minimal pylint configuration if needed
