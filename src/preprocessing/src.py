@@ -15,7 +15,7 @@ class Preprocessor:
         self,
         preset: PreprocessPreset,
         approx_char_size: int = 20,
-        text_color: tuple[int, int, int] | None = None,
+        text_color: tuple[int, int, int] | None = (30, 30, 30),
     ):
         if approx_char_size < 10:
             raise ValueError("Approximate character size must be greater than 9.")
@@ -42,28 +42,30 @@ class Preprocessor:
         # CV Filter image colors only leaving colors closer to the text color ideally
         color_filtered = None
 
-        if self.text_color is not None:
-            color_filtered = self.color_filter(cv_image, debug)
+        if self.text_color is not None:           
+            color_filtered = self.weihted_color_filter(cv_image, debug)
 
             if debug:
                 cv.imshow("Color Filtered", color_filtered)
         else:
             color_filtered = self.grayscale(cv_image, debug)
 
+            print("[Warning] A known text color will improve the preprocessing quality.")
+    
             if debug:
                 cv.imshow("Grayscaled", color_filtered)
 
-        thresholded = self.threshold(color_filtered, debug)
+        # thresholded = self.threshold(color_filtered, debug)
 
-        if debug:
-            cv.imshow("Thresholded", thresholded)
+        # if debug:
+            # cv.imshow("Thresholded", thresholded)
 
         # removed_islands = self.remove_islands(thresholded, debug)
 
         # if debug:
         # cv.imshow("Removed Islands", removed_islands)
 
-        thresholded_guassian = self.threshold_guassian(thresholded, debug)
+        thresholded_guassian = self.threshold_guassian(color_filtered, debug)
 
         if debug:
             cv.imshow("Thresholded Guassian", thresholded_guassian)
@@ -79,7 +81,7 @@ class Preprocessor:
 
         return resized
 
-    def color_filter(
+    def weihted_color_filter(
         self, cv_image: cv.typing.MatLike, debug=False
     ) -> cv.typing.MatLike:
         if self.text_color is None:
@@ -148,7 +150,7 @@ class Preprocessor:
             cv.ADAPTIVE_THRESH_GAUSSIAN_C,
             cv.THRESH_BINARY,
             blockSize,
-            16,
+            12,
         )
 
         return thresholded
@@ -159,12 +161,12 @@ class Preprocessor:
         # More research is required and tuning for the "C" and "blockSize" constants is required.
 
         # Plot a histogram of pixel counts binning by 8
-        # plt.hist(cv_image.ravel(), 256, (0, 180))
+        # plt.hist(cv_image.ravel(), 256, (0, 200))
         # plt.show()
 
         # Find the first peak, this will be the most common dark color
         # This will be used as the threshold for the non-adaptive thresholding
-        hist, bins = np.histogram(cv_image.ravel(), 256, (0, 180))
+        hist, bins = np.histogram(cv_image.ravel(), 256, (0, 200))
 
         # Compute the bin centers
         bin_centers = (bins[:-1] + bins[1:]) / 2
@@ -185,7 +187,7 @@ class Preprocessor:
             print(f"First peak: {first_peak}, Standard deviation: {std_dev}")
 
         # Set the threshold to the first peak
-        threshold = first_peak + 1.2 * std_dev
+        threshold = first_peak + 1 * std_dev
 
         print(f"Threshold: {threshold}")
 
