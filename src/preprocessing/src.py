@@ -16,6 +16,7 @@ class Preprocessor:
         preset: PreprocessPreset,
         approx_char_size: int = 20,
         text_color: tuple[int, int, int] | None = (30, 30, 30),
+        target_char_size: int = 32,
     ):
         if approx_char_size < 10:
             raise ValueError("Approximate character size must be greater than 9.")
@@ -23,6 +24,7 @@ class Preprocessor:
         self.preset = preset
         self.approx_char_size = approx_char_size
         self.text_color = text_color
+        self.target_char_size = target_char_size
 
     def preprocess(self, cv_image: cv.typing.MatLike, debug=False) -> cv.typing.MatLike:
         """Preprocess an image for OCR.
@@ -75,7 +77,7 @@ class Preprocessor:
         if debug:
             cv.imshow("Removed Islands 2", removed_islands_2)
 
-        resized = self.resize(removed_islands_2, self.approx_char_size)
+        resized = self.resize(removed_islands_2)
 
         contours = self.contour(resized, debug)
 
@@ -120,7 +122,7 @@ class Preprocessor:
         for x in range(gray_image.shape[1]):
             for y in range(gray_image.shape[0]):
                 pixel = cv_image[y, x]
-
+                
                 pixel_rgb = (pixel[2], pixel[1], pixel[0])
 
                 closeness_float = closeness(pixel_rgb, self.text_color)
@@ -129,7 +131,7 @@ class Preprocessor:
                 # is a curve that is more flat when closeness is low and more steep when
                 # closeness is high.
                 # x^4 {x: 0 -> 1}
-                gray_image[y, x] = 255 - (255 * (pow(closeness_float, 4)) // 1)
+                gray_image[y, x] = 255 - (255 * (pow(closeness_float, 2)) // 1)
 
         return gray_image
 
@@ -142,7 +144,7 @@ class Preprocessor:
         blockSize = self.approx_char_size
 
         if blockSize % 2 == 0:
-            blockSize -= 1
+            blockSize += 1
 
         thresholded = cv.adaptiveThreshold(
             cv_image,
@@ -150,7 +152,7 @@ class Preprocessor:
             cv.ADAPTIVE_THRESH_GAUSSIAN_C,
             cv.THRESH_BINARY,
             blockSize,
-            12,
+            15,
         )
 
         return thresholded
@@ -290,9 +292,9 @@ class Preprocessor:
         return cv_image
 
     def resize(
-        self, cv_image: cv.typing.MatLike, target_approx_char_size=32
+        self, cv_image: cv.typing.MatLike
     ) -> cv.typing.MatLike:
-        ratio = target_approx_char_size / self.approx_char_size
+        ratio = self.target_char_size / self.approx_char_size
         return cv.resize(
             cv_image, (0, 0), fx=ratio, fy=ratio, interpolation=cv.INTER_NEAREST
         )
